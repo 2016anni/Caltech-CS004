@@ -1,0 +1,165 @@
+#lang racket
+
+(require "lab7a.rkt")
+
+(define (assert-equals label x y)
+  (if(not (equal? x y))
+     (printf "TEST: ~s: FAILED! Expected: ~s; got: ~s~n" label y x)
+     (printf "TEST: ~s: PASSED~n" label)))
+
+(define init '((on  on  on  off off)
+               (off off off on  off)
+               (on  on  off on  on)
+               (off off off on  off)
+               (on  on  on  off off)))
+
+(define (get-all-cells game)
+  (define (on-off-to-int s) 
+    (if (eq? s 'on) 1 0))
+  (define (row game r)
+    (map (lambda (c) (on-off-to-int ((game 'peek r c) 'get-state))) '(0 1 2 3 4)))
+  (map (lambda (r) (row game r)) '(0 1 2 3 4)))
+
+;;
+;; Light tests.
+;;
+
+(define l1 (make-light))
+(define l2 (make-light))
+(define l3 (make-light))
+(define l4 (make-light))
+
+(assert-equals 'light1a (l1 'get-type) 'light)
+(assert-equals 'light1b (l2 'get-type) 'light)
+(assert-equals 'light1c (l3 'get-type) 'light)
+(assert-equals 'light1d (l4 'get-type) 'light)
+
+(assert-equals 'light2a (l1 'get-state) 'off)
+(assert-equals 'light2b (l2 'get-state) 'off)
+(assert-equals 'light2c (l3 'get-state) 'off)
+(assert-equals 'light2d (l4 'get-state) 'off)
+
+(l1 'toggle!)
+(l2 'toggle!)
+
+(assert-equals 'light3a (l1 'get-state) 'on)
+(assert-equals 'light3b (l2 'get-state) 'on)
+(assert-equals 'light3c (l3 'get-state) 'off)
+(assert-equals 'light3d (l4 'get-state) 'off)
+
+(l1 'set-state! 'off)
+(l3 'set-state! 'on)
+
+(assert-equals 'light4a (l1 'get-state) 'off)
+(assert-equals 'light4b (l2 'get-state) 'on)
+(assert-equals 'light4c (l3 'get-state) 'on)
+(assert-equals 'light4d (l4 'get-state) 'off)
+
+(l1 'add-neighbor! l2)
+(l1 'add-neighbor! l3)
+(l1 'add-neighbor! l4)
+
+(l1 'toggle!)
+
+(assert-equals 'light5a (l1 'get-state) 'on)
+(assert-equals 'light5b (l2 'get-state) 'on)
+(assert-equals 'light5c (l3 'get-state) 'on)
+(assert-equals 'light5d (l4 'get-state) 'off)
+
+(l1 'update!)
+
+(assert-equals 'light6a (l1 'get-state) 'off)
+(assert-equals 'light6b (l2 'get-state) 'off)
+(assert-equals 'light6c (l3 'get-state) 'off)
+(assert-equals 'light6d (l4 'get-state) 'on)
+
+;;
+;; Board tests.
+;;
+
+(define b1 (make-list-board))
+(define b2 (make-vector-board))
+(assert-equals 'board1a ((b1 'get 0 0) 'get-state) 'off)
+(assert-equals 'board1b ((b1 'get 4 0) 'get-state) 'off)
+(assert-equals 'board1c ((b1 'get 0 4) 'get-state) 'off)
+(assert-equals 'board1d ((b1 'get 4 4) 'get-state) 'off)
+(assert-equals 'board1e ((b2 'get 0 0) 'get-state) 'off)
+(assert-equals 'board1f ((b2 'get 4 0) 'get-state) 'off)
+(assert-equals 'board1g ((b2 'get 0 4) 'get-state) 'off)
+(assert-equals 'board1h ((b2 'get 4 4) 'get-state) 'off)
+((b1 'get 0 0) 'set-state! 'on)
+(assert-equals 'board2a ((b1 'get 0 0) 'get-state) 'on)
+(assert-equals 'board2b ((b1 'get 0 4) 'get-state) 'off)  ; check for aliasing
+(assert-equals 'board2c ((b1 'get 4 0) 'get-state) 'off)
+(assert-equals 'board2d ((b1 'get 4 4) 'get-state) 'off)
+((b2 'get 0 0) 'set-state! 'on)
+(assert-equals 'board2e ((b2 'get 0 0) 'get-state) 'on)
+(assert-equals 'board2f ((b2 'get 0 4) 'get-state) 'off)
+(assert-equals 'board2g ((b2 'get 4 0) 'get-state) 'off)
+(assert-equals 'board2h ((b2 'get 4 4) 'get-state) 'off)
+
+
+;
+;; Game tests.
+;;
+
+(define game (make-game make-list-board))
+(game 'init! init)
+(assert-equals 'game1a ((game 'peek 0 0) 'get-state) 'on)
+(assert-equals 'game1b ((game 'peek 0 4) 'get-state) 'off)
+(assert-equals 'game1c (get-all-cells game) '((1 1 1 0 0) (0 0 0 1 0) (1 1 0 1 1) (0 0 0 1 0) (1 1 1 0 0)))
+(game 'play! 0 1)
+(assert-equals 'game1d (get-all-cells game) '((0 0 0 0 0) (0 1 0 1 0) (1 1 0 1 1) (0 0 0 1 0) (1 1 1 0 0)))
+(game 'play! 2 3)
+(assert-equals 'game1e (get-all-cells game) '((0 0 0 0 0) (0 1 0 0 0) (1 1 1 0 0) (0 0 0 0 0) (1 1 1 0 0)))
+(game 'play! 2 1)
+(assert-equals 'game1f (get-all-cells game) '((0 0 0 0 0) (0 0 0 0 0) (0 0 0 0 0) (0 1 0 0 0) (1 1 1 0 0)))
+(game 'play! 4 1)
+
+(define game2 (make-game make-vector-board))
+(game2 'init! init)
+(assert-equals 'game2a ((game2 'peek 0 0) 'get-state) 'on)
+(assert-equals 'game2b ((game2 'peek 0 4) 'get-state) 'off)
+(assert-equals 'game2c (get-all-cells game2) '((1 1 1 0 0) (0 0 0 1 0) (1 1 0 1 1) (0 0 0 1 0) (1 1 1 0 0)))
+(game2 'play! 1 0)
+(assert-equals 'game2d (get-all-cells game2) '((0 1 1 0 0) (1 1 0 1 0) (0 1 0 1 1) (0 0 0 1 0) (1 1 1 0 0)))
+(game2 'play! 1 1)
+(assert-equals 'game2e (get-all-cells game2) '((0 0 1 0 0) (0 0 1 1 0) (0 0 0 1 1) (0 0 0 1 0) (1 1 1 0 0)))
+(game2 'play! 1 2)
+(assert-equals 'game2f (get-all-cells game2) '((0 0 0 0 0) (0 1 0 0 0) (0 0 1 1 1) (0 0 0 1 0) (1 1 1 0 0)))
+(game2 'play! 2 1)
+(assert-equals 'game2g (get-all-cells game2) '((0 0 0 0 0) (0 0 0 0 0) (1 1 0 1 1) (0 1 0 1 0) (1 1 1 0 0)))
+(game2 'play! 3 0)
+(assert-equals 'game2h (get-all-cells game2) '((0 0 0 0 0) (0 0 0 0 0) (0 1 0 1 1) (1 0 0 1 0) (0 1 1 0 0)))
+(game2 'play! 3 1)
+(assert-equals 'game2i (get-all-cells game2) '((0 0 0 0 0) (0 0 0 0 0) (0 0 0 1 1) (0 1 1 1 0) (0 0 1 0 0)))
+(game2 'play! 3 3)
+(assert-equals 'game2j (get-all-cells game2) '((0 0 0 0 0) (0 0 0 0 0) (0 0 0 0 1) (0 1 0 0 1) (0 0 1 1 0)))
+(game2 'play! 3 4)
+(assert-equals 'game2k (get-all-cells game2) '((0 0 0 0 0) (0 0 0 0 0) (0 0 0 0 0) (0 1 0 1 0) (0 0 1 1 1)))
+(game2 'play! 4 1)
+(assert-equals 'game2l (get-all-cells game2) '((0 0 0 0 0) (0 0 0 0 0) (0 0 0 0 0) (0 0 0 1 0) (1 1 0 1 1)))
+(game2 'play! 4 3)
+(assert-equals 'game2m (get-all-cells game2) '((0 0 0 0 0) (0 0 0 0 0) (0 0 0 0 0) (0 0 0 0 0) (1 1 1 0 0)))
+(game2 'play! 0 1)
+(assert-equals 'game2n (get-all-cells game2) '((1 1 1 0 0) (0 1 0 0 0) (0 0 0 0 0) (0 0 0 0 0) (1 1 1 0 0)))
+(game2 'play! 1 0)
+(assert-equals 'game2o (get-all-cells game2) '((0 1 1 0 0) (1 0 0 0 0) (1 0 0 0 0) (0 0 0 0 0) (1 1 1 0 0)))
+(game2 'play! 1 1)
+(assert-equals 'game2p (get-all-cells game2) '((0 0 1 0 0) (0 1 1 0 0) (1 1 0 0 0) (0 0 0 0 0) (1 1 1 0 0)))
+(game2 'play! 1 2)
+(assert-equals 'game2q (get-all-cells game2) '((0 0 0 0 0) (0 0 0 1 0) (1 1 1 0 0) (0 0 0 0 0) (1 1 1 0 0)))
+(game2 'play! 2 3)
+(assert-equals 'game2r (get-all-cells game2) '((0 0 0 0 0) (0 0 0 0 0) (1 1 0 1 1) (0 0 0 1 0) (1 1 1 0 0)))
+(game2 'play! 3 0)
+(assert-equals 'game2s (get-all-cells game2) '((0 0 0 0 0) (0 0 0 0 0) (0 1 0 1 1) (1 1 0 1 0) (0 1 1 0 0)))
+(game2 'play! 3 1)
+(assert-equals 'game2t (get-all-cells game2) '((0 0 0 0 0) (0 0 0 0 0) (0 0 0 1 1) (0 0 1 1 0) (0 0 1 0 0)))
+(game2 'play! 3 3)
+(assert-equals 'game2u (get-all-cells game2) '((0 0 0 0 0) (0 0 0 0 0) (0 0 0 0 1) (0 0 0 0 1) (0 0 1 1 0)))
+(game2 'play! 3 4)
+(assert-equals 'game2v (get-all-cells game2) '((0 0 0 0 0) (0 0 0 0 0) (0 0 0 0 0) (0 0 0 1 0) (0 0 1 1 1)))
+(game2 'play! 4 3)
+(assert-equals 'game2w (get-all-cells game2) '((0 0 0 0 0) (0 0 0 0 0) (0 0 0 0 0) (0 0 0 0 0) (0 0 0 0 0)))
+
+;; TODO: Add tests for error conditions.

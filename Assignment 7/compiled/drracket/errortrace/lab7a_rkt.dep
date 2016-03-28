@@ -1,0 +1,1 @@
+("6.1.1" ("f3f4372b1b2a7ace62c47e5ee40c9685b1df672b" . "dd7109d0554f61decf2da80bcd2731fb73ce2d06") (collects #"scheme" #"mpair.rkt") (collects #"htdp" #"testing.rkt") (collects #"racket" #"main.rkt") (collects #"racket" #"runtime-config.rkt"))
